@@ -1,0 +1,30 @@
+django==3.2.7
+django-model-utils==4.1.1
+arrow==1.1.1
+# Additional requirements go here
+psycopg2-binary==2.9.1
+Pillow==8.3.2
+django-crispy-forms==1.12.0
+django-extensions==3.1.3
+# pdf
+django-weasyprint==1.1.0.post1
+# rest
+djangorestframework==3.12.4
+drf-writable-nested==0.6.3
+# modalajax
+django-bootstrap-modal-forms==2.2.0
+django-widget-tweaks==1.4.8
+# auto child create
+django-auto-one-to-one==3.3.1
+WeasyPrint==53.3
+django-select2==7.7.2
+# Additional requirements go here
+django-bootstrap-datepicker-plus==3.0.5
+DateTimeRange==1.2.0
+django-notifications-hq==1.6.0
+
+nobinobi-core==0.1.4.6
+nobinobi-child==0.1.3.7
+nobinobi-staff==0.1.6.5.1
+nobinobi-daily-follow-up==0.1.1.13
+git+https://github.com/jazzband/django-simple-menu.git@master#egg=django-simple-menu
