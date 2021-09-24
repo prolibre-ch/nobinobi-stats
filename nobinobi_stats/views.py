@@ -147,13 +147,13 @@ class AttendancePeriod(LoginRequiredMixin, TemplateView):
                         end_date_period = datetime.datetime.combine(presence.date, period["end_time"])
                         period_time_range = DateTimeRange(start_date_period, end_date_period)
                         if presence_time_range.is_intersection(period_time_range):
-                            if presence.date not in dict_table["classroom"][presence.classroom_id]["period"][
-                                period["id"]]["date"]:
+                            if presence.date not in \
+                                dict_table["classroom"][presence.classroom_id]["period"][period["id"]]["date"]:
                                 dict_table["classroom"][presence.classroom_id]["period"][period["id"]]["date"][
                                     presence.date] = {"total": 0}
+
                             dict_table["classroom"][presence.classroom_id]["period"][period["id"]]["date"][
-                                presence.date][
-                                "total"] += 1
+                                presence.date]["total"] += 1
         # periods
 
         # calcul percentage
@@ -202,8 +202,11 @@ class AttendancePeriod(LoginRequiredMixin, TemplateView):
 
         for period_id, period_value in dict_table["total"]["period"].items():
             percentage = utils.round_up(
-                utils.percentage(dict_table["total"]["period"][period_id]["average"], dict_table["total"]["classroom"]),
-                1)
+                utils.percentage(
+                    dict_table["total"]["period"][period_id]["average"], dict_table["total"]["classroom"]
+                ),
+                1
+            )
             dict_table["total"]["period"][period_id]["percentage"] = percentage
 
         return dict_table
@@ -317,7 +320,6 @@ class AttendanceCalendar(LoginRequiredMixin, TemplateView):
         # fill data
         presences = Presence.objects.filter(date__in=self.dates_range, arrival_time__isnull=False)
         for presence in presences:
-            child = presence.child
             classroom = presence.classroom
             date = presence.date
             # on ajoute au total de classe
@@ -461,7 +463,9 @@ class AttendanceChild(LoginRequiredMixin, TemplateView):
         for nbr in range(1, number_of_weeks + 1):
             for period_planned in periods_planned:
                 dict_table[child.id]["period"]["planned"][period_planned.period_id]["total"] += 1
-                dict_table[child.id]["period"]["planned"][period_planned.period_id]["total_list"].append(period_planned)
+                dict_table[child.id]["period"]["planned"][period_planned.period_id]["total_list"].append(
+                    period_planned
+                )
                 dict_table[child.id]["period"]["planned"]["total"] += 1
 
         # fill present period
@@ -514,7 +518,10 @@ class AttendanceChild(LoginRequiredMixin, TemplateView):
         # percentage entre planned et present
         total_planned = dict_table[child.id]["period"]["planned"]["total"]
         total_present = dict_table[child.id]["period"]["present"]["total"]
-        dict_table[child.id]["period"]["percentage"] = utils.round_up(utils.percentage(total_present, total_planned), 1)
+        dict_table[child.id]["period"]["percentage"] = utils.round_up(
+            utils.percentage(total_present, total_planned),
+            1
+        )
 
         # absences
         absences = Absence.objects.filter(child=child, end_date__gte=from_date,
@@ -546,9 +553,13 @@ class AttendanceChild(LoginRequiredMixin, TemplateView):
                             dict_table[child.id]["absence"]["group"][slugify(absence.type.group.name)][
                                 "total_list"].append(absence)
                             dict_table[child.id]["absence"]["group"][slugify(absence.type.group.name)][
-                                "percentage"] = utils.round_up(utils.percentage(
-                                dict_table[child.id]["absence"]["group"][slugify(absence.type.group.name)]["total"],
-                                total_planned))
+                                "percentage"] = utils.round_up(
+                                utils.percentage(
+                                    dict_table[child.id]["absence"]["group"][slugify(absence.type.group.name)][
+                                        "total"],
+                                    total_planned
+                                )
+                            )
                             dict_table[child.id]["absence"]["total"] += 1
 
         # calcul pourcentage de absence total
@@ -669,9 +680,9 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
         holidays = Holiday.objects.filter(date__gte=from_date, date__lte=end_date).values_list("date", flat=True)
 
         # Business days list
-        range_dates = [r.date() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
-                                               dtstart=from_date,
-                                               until=end_date) if r.date() not in holidays]
+        # range_dates = [r.date() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
+        #                                        dtstart=from_date,
+        #                                        until=end_date) if r.date() not in holidays]
         range_dates_weekday = {r.date(): r.isoweekday() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
                                                                        dtstart=from_date,
                                                                        until=end_date) if r.date() not in holidays}
@@ -700,9 +711,11 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
                         period_planned["period_id"]][
                         "average_list"].append(period_planned)
                     dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
-                        period_planned["period_id"]]["average"] = utils.round_up(dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
-                            period_planned["period_id"]]["total"] / len(dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
-                            period_planned["period_id"]]["date"]), 1)
+                        period_planned["period_id"]]["average"] = utils.round_up(
+                        dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
+                            period_planned["period_id"]]["total"] / len(
+                            dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
+                                period_planned["period_id"]]["date"]), 1)
             # dict_table["classroom"][period_planned["child__classroom_id"]]["average"]["average_list"].append(period_planned)
 
         # calcul percentage

@@ -14,9 +14,10 @@
 #      along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import arrow
 import math
-from dateutil.rrule import *
+
+import arrow
+from dateutil.rrule import WEEKLY, DAILY, MO, TU, WE, TH, FR, rrule
 
 
 def percentage(part, whole):

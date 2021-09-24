@@ -37,7 +37,7 @@ def coverage(c):
     """
     check code coverage quickly with the default Python
     """
-    c.run("coverage run --source nobinobi-stats runtests.py tests")
+    c.run("coverage run --source nobinobi_stats runtests.py tests")
     c.run("coverage report -m")
     c.run("coverage html")
     c.run("open htmlcov/index.html")
@@ -86,7 +86,7 @@ def lint(c):
     """
     Check style with flake8
     """
-    c.run("flake8 nobinobi-stats tests")
+    c.run("flake8 nobinobi_stats tests")
 
 
 @task(help={'bumpsize': 'Bump either for a "feature" or "breaking" change'})

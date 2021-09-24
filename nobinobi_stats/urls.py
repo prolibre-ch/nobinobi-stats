@@ -25,7 +25,11 @@ urlpatterns = [
             ])),
             path("child/", include([
                 path("~choice/", view=views.ChoiceAttendanceChild.as_view(), name='choice_attendance_child'),
-                path("<isodate:from_date>/<isodate:end_date>/<uuid:child>/", view=views.AttendanceChild.as_view(), name='attendance_child'),
+                path(
+                    "<isodate:from_date>/<isodate:end_date>/<uuid:child>/",
+                    view=views.AttendanceChild.as_view(),
+                    name='attendance_child'
+                ),
             ])),
         ])),
         path("occupancy/", include([
