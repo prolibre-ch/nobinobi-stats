@@ -3,6 +3,11 @@
 History
 -------
 
+0.1.3 (2022-02-24)
+++++++++++++++++++
+
+* 5e7d804 - fix in stats attendance when 3 periods is between us
+
 0.1.2 (2021-12-14)
 ++++++++++++++++++
 
