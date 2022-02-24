@@ -471,8 +471,8 @@ class AttendanceChild(LoginRequiredMixin, TemplateView):
     def fill_dict_table(self, dict_table, child, from_date, end_date, dates_range):
         # fill planned period
         periods_planned = ChildToPeriod.objects.select_related("period").filter(child_id=child.id,
-                                                                                start_date__lte=from_date,
-                                                                                end_date__gte=end_date,
+                                                                                start_date__lte=end_date,
+                                                                                end_date__gte=from_date,
                                                                                 period__weekday__in=dates_range)
 
         number_of_weeks = utils.weeks_between(from_date, end_date)
