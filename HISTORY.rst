@@ -3,6 +3,11 @@
 History
 -------
 
+0.1.4 (2023-09-12)
+++++++++++++++++++
+
+* cde21fa - Fix stats occupancy remove Organisation Closure from stats
+
 0.1.3 (2022-02-24)
 ++++++++++++++++++
 
