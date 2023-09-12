@@ -28,7 +28,7 @@ from django.utils.timezone import make_naive
 from django.utils.translation import gettext as _
 from django.views.generic import FormView, TemplateView
 from nobinobi_child.models import Classroom, Period, WEEKDAY_CHOICES, Child, AbsenceGroup, ChildToPeriod, Absence
-from nobinobi_core.models import Holiday
+from nobinobi_core.models import Holiday, OrganisationClosure
 from nobinobi_daily_follow_up.models import Presence, DailyFollowUp
 
 from nobinobi_stats import utils
@@ -695,13 +695,21 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
         # holiday
         holidays = Holiday.objects.filter(date__gte=from_date, date__lte=end_date).values_list("date", flat=True)
 
+        # Organisation Closure
+        ocs = OrganisationClosure.objects.filter(from_date__lte=end_date, end_date__gte=from_date)
+        ocs_list_day = []
+        for oc in ocs:
+            oc_list = [r.date() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=oc.from_date, until=oc.end_date)]
+            for i in oc_list:
+                ocs_list_day.append(i)
+
         # Business days list
         # range_dates = [r.date() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
         #                                        dtstart=from_date,
         #                                        until=end_date) if r.date() not in holidays]
         range_dates_weekday = {r.date(): r.isoweekday() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
                                                                        dtstart=from_date,
-                                                                       until=end_date) if r.date() not in holidays}
+                                                                       until=end_date) if r.date() not in holidays and r.date() not in ocs_list_day}
 
         for date, weekday in range_dates_weekday.items():
             periods_planned = ChildToPeriod.objects.select_related("period", "child").filter(
