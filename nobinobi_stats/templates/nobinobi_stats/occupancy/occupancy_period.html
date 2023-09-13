@@ -47,7 +47,7 @@
       <tr>
         <td scope="row" class="bg-info-gradient">{{ classroom_value.name }} <small>({{ classroom_value.capacity }})</small></td>
         {% for period in classroom_value.period.values %}
-          <td>{{ period.average }} <small>({{ period.percentage }}%)</small></td>
+          <td>{% if not period.dayoff %}{{ period.average }} <small>({{ period.percentage }}%){% else %}{% translate "Day off" %}{% endif %}</small></td>
         {% endfor %}
         <td>{{ classroom_value.average.total }} {% trans "or" %} {{ classroom_value.average.percentage }}%</td>
       </tr>
