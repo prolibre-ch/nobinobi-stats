@@ -17,7 +17,13 @@
 import math
 
 import arrow
+from _decimal import Decimal
 from dateutil.rrule import WEEKLY, DAILY, MO, TU, WE, TH, FR, rrule
+
+
+def round_nearest(num: float, to: float) -> float:
+    num, to = Decimal(str(num)), Decimal(str(to))
+    return float(round(num / to) * to)
 
 
 def percentage(part, whole):

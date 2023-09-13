@@ -619,14 +619,44 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
     """ Vue de choix pour aller sur la page de attedance"""
     template_name = "nobinobi_stats/occupancy/occupancy_period.html"
 
+    def __init__(self, *args, **kwargs):
+        self.dayoff = self.get_dayoff_day()
+        super(OccupancyPeriod, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    def get_ocs_day(end_date, from_date):
+        # Organisation Closure
+        ocs = OrganisationClosure.objects.filter(from_date__lte=end_date, end_date__gte=from_date)
+        ocs_list_day = []
+        for oc in ocs:
+            oc_list = [r.date() for r in
+                       rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=oc.from_date, until=oc.end_date)]
+            for i in oc_list:
+                ocs_list_day.append(i)
+        return ocs_list_day
+
+    @staticmethod
+    def get_holiday_day(end_date, from_date):
+        # holiday
+        return Holiday.objects.filter(date__gte=from_date, date__lte=end_date).values_list("date", flat=True)
+
+    @staticmethod
+    def get_dayoff_day():
+        # dayoff
+        return {c.id: list(c.classroomdayoff_set.all().values_list("weekday", flat=True)) for c in
+                Classroom.objects.all().prefetch_related("classroomdayoff_set")}
+
     def get_context_data(self, **kwargs):
         context = super(OccupancyPeriod, self).get_context_data(**kwargs)
         context["title"] = _("Occupancy period")
         context["from_date"] = self.kwargs.get("from_date")
         context["end_date"] = self.kwargs.get("end_date")
+        holidays = self.get_holiday_day(context["from_date"], context["end_date"])
+        ocs_list_day = self.get_ocs_day(context["end_date"], context["from_date"])
         dates_range_weekday = [r.isoweekday() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
                                                              dtstart=context["from_date"],
-                                                             until=context["end_date"])]
+                                                             until=context["end_date"]) if
+                               r.date() not in holidays and r.date() not in ocs_list_day]
         dict_table = self.get_dict_table(dates_range_weekday)
         dict_table_filled = self.fill_dict_table(dict_table)
         context["dict_table"] = dict_table_filled
@@ -673,7 +703,8 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
                     "total": 0.0,
                     "average": 0.0,
                     "average_list": [],
-                    "percentage": 0.0
+                    "percentage": 0.0,
+                    "dayoff": False
                 }
 
         # the dictionary is filled with the periods for the totals
@@ -682,7 +713,8 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
                 "name": WEEKDAY_CHOICES[period["weekday"]] + " " + period["name"],
                 "percentage": 0.0,
                 "average_list": [],
-                "total": 0.0
+                "total": 0.0,
+                "dayoff": False
             }
 
         return dict_table
@@ -692,48 +724,37 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
         from_date = self.kwargs.get("from_date")
         end_date = self.kwargs.get("end_date")
 
-        # holiday
-        holidays = Holiday.objects.filter(date__gte=from_date, date__lte=end_date).values_list("date", flat=True)
-
-        # Organisation Closure
-        ocs = OrganisationClosure.objects.filter(from_date__lte=end_date, end_date__gte=from_date)
-        ocs_list_day = []
-        for oc in ocs:
-            oc_list = [r.date() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR), dtstart=oc.from_date, until=oc.end_date)]
-            for i in oc_list:
-                ocs_list_day.append(i)
+        holidays = self.get_holiday_day(from_date, end_date)
+        ocs_list_day = self.get_ocs_day(end_date, from_date)
 
         # Business days list
-        # range_dates = [r.date() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
-        #                                        dtstart=from_date,
-        #                                        until=end_date) if r.date() not in holidays]
-        range_dates_weekday = {r.date(): r.isoweekday() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
-                                                                       dtstart=from_date,
-                                                                       until=end_date) if r.date() not in holidays and r.date() not in ocs_list_day}
+        range_dates_isoweekday = {r.date(): r.isoweekday() for r in rrule(DAILY, byweekday=(MO, TU, WE, TH, FR),
+                                                                          dtstart=from_date,
+                                                                          until=end_date) if
+                                  r.date() not in holidays and r.date() not in ocs_list_day}
 
-        for date, weekday in range_dates_weekday.items():
+        for date, weekday in range_dates_isoweekday.items():
             periods_planned = ChildToPeriod.objects.select_related("period", "child").filter(
                 start_date__lte=date,
                 end_date__gte=date,
-                child__status=Child.STATUS.in_progress,
+                # child__status=Child.STATUS.in_progress,
             ).values("period_id", "child__classroom_id", "period__weekday", "child")
+
             for period_planned in periods_planned:
-                if period_planned["period__weekday"] == date.isoweekday() and period_planned["child__classroom_id"]:
+                if period_planned["period__weekday"] == date.isoweekday() and period_planned["child__classroom_id"] and \
+                    period_planned["period__weekday"] not in self.dayoff[period_planned["child__classroom_id"]]:
                     if date not in dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
                         period_planned["period_id"]]["date"]:
                         dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
                             period_planned["period_id"]]["date"][date] = 0
                     dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
-                        period_planned["period_id"]][
-                        "child"].append(period_planned["child"])
+                        period_planned["period_id"]]["child"].append(period_planned["child"])
                     dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
-                        period_planned["period_id"]][
-                        "date"][date] += 1
+                        period_planned["period_id"]]["date"][date] += 1
                     dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
                         period_planned["period_id"]]["total"] += 1
                     dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
-                        period_planned["period_id"]][
-                        "average_list"].append(period_planned)
+                        period_planned["period_id"]]["average_list"].append(period_planned)
                     dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
                         period_planned["period_id"]]["average"] = utils.round_up(
                         dict_table["classroom"][period_planned["child__classroom_id"]]["period"][
@@ -750,23 +771,27 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
 
             # fill list with total by period
             for period_id, period_value in dict_table["classroom"][classroom["id"]]["period"].items():
-                if not period_value["total"] == 0.0:
-                    dict_table["classroom"][classroom["id"]]["average"]["average_list"].append(period_value["average"])
-
+                if period_value['date']:
+                    if period_value['child']:
+                        dict_table["classroom"][classroom["id"]]["average"]["average_list"].append(
+                            period_value["average"])
                     # set average for period
-                dict_table["classroom"][classroom["id"]]["period"][period_id]["percentage"] = utils.round_up(
-                    utils.percentage(dict_table["classroom"][classroom["id"]]["period"][period_id]["average"],
-                                     dict_table['classroom'][classroom["id"]]["capacity"]))
+                    dict_table["classroom"][classroom["id"]]["period"][period_id]["percentage"] = utils.round_up(
+                        utils.percentage(dict_table["classroom"][classroom["id"]]["period"][period_id]["average"],
+                                         dict_table['classroom'][classroom["id"]]["capacity"]), 1)
 
-                # on ajoute au total col
-                dict_table["total"]["period"][period_id]["average_list"].append(
-                    dict_table["classroom"][classroom["id"]]["period"][period_id]["average"])
-                dict_table["total"]["period"][period_id]["total"] = sum(
-                    dict_table["total"]["period"][period_id]["average_list"])
-                dict_table["total"]["period"][period_id]["percentage"] = utils.round_up(
-                    utils.percentage(dict_table["total"]["period"][period_id]["total"],
-                                     dict_table["total"]["classroom"]), 1)
+                    # on ajoute au total col
+                    dict_table["total"]["period"][period_id]["average_list"].append(
+                        dict_table["classroom"][classroom["id"]]["period"][period_id]["average"])
+                    dict_table["total"]["period"][period_id]["total"] = utils.round_nearest(sum(
+                        dict_table["total"]["period"][period_id]["average_list"]), 0.1)
 
+                    dict_table["total"]["period"][period_id]["percentage"] = utils.round_up(
+                        utils.percentage(dict_table["total"]["period"][period_id]["total"],
+                                         dict_table["total"]["classroom"]), 1)
+                else:
+                    dict_table["classroom"][classroom["id"]]["period"][period_id]['dayoff'] = True
+                    dict_table["total"]["period"][period_id]['dayoff'] = True
             # set average for row
             dict_table["classroom"][classroom["id"]]["average"]["total"] = utils.round_up(mean(
                 dict_table["classroom"][classroom["id"]]["average"]["average_list"]), 1)
@@ -775,8 +800,9 @@ class OccupancyPeriod(LoginRequiredMixin, TemplateView):
 
         # add total list
         for period in dict_table["total"]['period'].values():
-            dict_table["total"]["average"]["total_list"].append(
-                period['total'])
+            if not period['dayoff']:
+                dict_table["total"]["average"]["total_list"].append(
+                    period['total'])
 
         dict_table["total"]["average"]["total"] = utils.round_up(mean(dict_table["total"]["average"]["total_list"]), 1)
         percentage = utils.round_up(
