@@ -3,6 +3,11 @@
 History
 -------
 
+0.1.5 (2023-09-13)
+++++++++++++++++++
+
+* 75783f3 - Update stats occupancy to use ocs and dayoff
+
 0.1.4 (2023-09-12)
 ++++++++++++++++++
 
